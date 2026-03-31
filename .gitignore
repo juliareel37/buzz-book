@@ -8,3 +8,4 @@ coverage
 # clerk configuration (can include secrets)
 /.clerk/
 .env.local
+.env.example
