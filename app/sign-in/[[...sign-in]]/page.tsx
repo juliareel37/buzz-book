@@ -7,6 +7,7 @@ export default function SignInPage() {
         path="/sign-in"
         routing="path"
         signUpUrl="/sign-up"
+        fallbackRedirectUrl="/"
         appearance={{
           elements: {
             card: "clerk-card",

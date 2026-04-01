@@ -1,13 +1,14 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const tabs = [
-  { href: "/", label: "Home", icon: "◎" },
-  { href: "/log", label: "Add", icon: "+" },
-  { href: "/trends", label: "Trends", icon: "≈" },
-  { href: "/settings", label: "Settings", icon: "◌" },
+  { href: "/", label: "Home", icon: "/icons/home.svg" },
+  { href: "/log", label: "Add", icon: "/icons/add.svg" },
+  { href: "/trends", label: "Activity", icon: "/icons/timeline.svg" },
+  { href: "/settings", label: "Profile", icon: "/icons/profile.svg" },
 ];
 
 export function BottomTabs() {
@@ -16,7 +17,10 @@ export function BottomTabs() {
   return (
     <nav className="bottom-tabs" aria-label="Primary">
       {tabs.map((tab) => {
-        const isActive = pathname === tab.href;
+        const isActive =
+          tab.href === "/"
+            ? pathname === tab.href
+            : pathname === tab.href || pathname.startsWith(`${tab.href}/`);
 
         return (
           <Link
@@ -26,7 +30,14 @@ export function BottomTabs() {
             aria-current={isActive ? "page" : undefined}
           >
             <span className="tab-icon" aria-hidden="true">
-              {tab.icon}
+              <span
+                className="tab-icon-image"
+                style={
+                  {
+                    "--icon-url": `url(${tab.icon})`,
+                  } as CSSProperties
+                }
+              />
             </span>
             <span>{tab.label}</span>
           </Link>

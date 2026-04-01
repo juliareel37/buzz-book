@@ -17,6 +17,8 @@ export function AppShell({ children }: AppShellProps) {
   const { isLoaded, isSignedIn } = useUser();
   const pathname = usePathname();
   const isAuthPage = pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up");
+  const isSetupPage = pathname.startsWith("/onboarding");
+  const hideChrome = isAuthPage || isSetupPage;
 
   return (
     <main className="app-shell">
@@ -25,7 +27,7 @@ export function AppShell({ children }: AppShellProps) {
           <span className="brand-icon" aria-hidden="true" />
           <span className="brand">Buzz Book</span>
         </span>
-        {!isAuthPage ? (
+        {!hideChrome ? (
           <div className="auth-slot">
             {isLoaded && !isSignedIn ? (
               <SignInButton mode="modal">
@@ -50,7 +52,7 @@ export function AppShell({ children }: AppShellProps) {
         ) : null}
       </header>
       <div className="app-content">{children}</div>
-      {!isAuthPage ? <BottomTabs /> : null}
+      {!hideChrome ? <BottomTabs /> : null}
     </main>
   );
 }
