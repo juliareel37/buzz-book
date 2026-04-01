@@ -4,6 +4,7 @@ import { getDrinkEntriesForClerkUser } from "@/db/queries";
 import { getDrinkBacIncrease } from "@/lib/bac";
 import { getEffectiveDrinkTime } from "@/lib/drink-entry";
 import { requireCurrentUserProfile } from "@/lib/profile";
+import { getRequestTimeZone } from "@/lib/timezone";
 import { deleteDrinkEntryAction } from "../actions";
 import { TonightList } from "../tonight-list";
 import {
@@ -30,8 +31,9 @@ export default async function DayDetailPage({
 }: DayDetailPageProps) {
   const { day } = await params;
   const { from } = await searchParams;
-  const selectedDate = parseDayKey(day);
   const fromHistory = from === "history";
+  const timeZone = await getRequestTimeZone();
+  const selectedDate = parseDayKey(day, timeZone);
 
   if (!selectedDate) {
     notFound();
@@ -39,7 +41,9 @@ export default async function DayDetailPage({
 
   const profile = await requireCurrentUserProfile();
   const entries = await getDrinkEntriesForClerkUser(profile.clerkUserId);
-  const dayEntries = entries.filter((entry) => getDayKey(getEffectiveDrinkTime(entry)) === day);
+  const dayEntries = entries.filter(
+    (entry) => getDayKey(getEffectiveDrinkTime(entry), timeZone) === day,
+  );
 
   if (dayEntries.length === 0) {
     notFound();
@@ -53,7 +57,7 @@ export default async function DayDetailPage({
           className="back-link back-link-icon-only"
           restoreSessionKey={fromHistory ? "buzz-book-history-restore" : undefined}
         />
-        <h1>{formatDayHeading(selectedDate)}</h1>
+        <h1>{formatDayHeading(selectedDate, timeZone)}</h1>
       </div>
 
       <section className="activity-section">
@@ -63,7 +67,7 @@ export default async function DayDetailPage({
               id: entry.id,
               iconUrl: drinkTypeIcons[entry.drinkType],
               drinkName: formatDrinkType(entry.drinkType, entry.customDrinkName),
-              detailLine: `${formatLoggedAt(getEffectiveDrinkTime(entry))} | ${Number(entry.servingSizeOz).toFixed(1)} oz`,
+              detailLine: `${formatLoggedAt(getEffectiveDrinkTime(entry), timeZone)} | ${Number(entry.servingSizeOz).toFixed(1)} oz`,
               abvLine: `${Number(entry.abvPercent).toFixed(1)}%\u00A0ABV`,
               bacAdd: `+ ${getDrinkBacIncrease(entry.servingSizeOz, entry.abvPercent, {
                 sex: profile.sex,

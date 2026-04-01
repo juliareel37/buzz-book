@@ -3,6 +3,7 @@ import { getEffectiveDrinkTime } from "@/lib/drink-entry";
 type BacProfile = {
   sex: "female" | "male";
   weightInPounds: number | string;
+  metabolicEfficiency?: "lightweight" | "average" | "efficient";
 };
 
 type BacDrinkEntry = {
@@ -15,6 +16,8 @@ type BacDrinkEntry = {
 const ELIMINATION_RATE_PER_HOUR = 0.015;
 const FEMALE_DISTRIBUTION_RATIO = 0.66;
 const MALE_DISTRIBUTION_RATIO = 0.73;
+const LIGHTWEIGHT_ELIMINATION_RATE_PER_HOUR = 0.012;
+const EFFICIENT_ELIMINATION_RATE_PER_HOUR = 0.018;
 
 export function getDistributionRatio(sex: BacProfile["sex"]) {
   return sex === "female" ? FEMALE_DISTRIBUTION_RATIO : MALE_DISTRIBUTION_RATIO;
@@ -22,6 +25,20 @@ export function getDistributionRatio(sex: BacProfile["sex"]) {
 
 export function getAlcoholOunces(servingSizeOz: number | string, abvPercent: number | string) {
   return Number(servingSizeOz) * (Number(abvPercent) / 100);
+}
+
+export function getEliminationRatePerHour(
+  metabolicEfficiency: BacProfile["metabolicEfficiency"],
+) {
+  if (metabolicEfficiency === "lightweight") {
+    return LIGHTWEIGHT_ELIMINATION_RATE_PER_HOUR;
+  }
+
+  if (metabolicEfficiency === "efficient") {
+    return EFFICIENT_ELIMINATION_RATE_PER_HOUR;
+  }
+
+  return ELIMINATION_RATE_PER_HOUR;
 }
 
 export function getDrinkBacIncrease(
@@ -42,6 +59,7 @@ export function getDrinkBacIncrease(
 
 export function calculateCurrentBac(entries: BacDrinkEntry[], profile: BacProfile, now = new Date()) {
   const currentTime = now.getTime();
+  const eliminationRatePerHour = getEliminationRatePerHour(profile.metabolicEfficiency);
 
   const totalBac = entries.reduce((sum, entry) => {
     const effectiveTime = getEffectiveDrinkTime(entry);
@@ -52,7 +70,7 @@ export function calculateCurrentBac(entries: BacDrinkEntry[], profile: BacProfil
       profile,
     );
 
-    return sum + Math.max(drinkIncrease - ELIMINATION_RATE_PER_HOUR * hoursSinceDrink, 0);
+    return sum + Math.max(drinkIncrease - eliminationRatePerHour * hoursSinceDrink, 0);
   }, 0);
 
   return Math.max(totalBac, 0);

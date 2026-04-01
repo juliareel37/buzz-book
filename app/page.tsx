@@ -3,6 +3,7 @@ import { calculateCurrentBac, getBacProgressPercent } from "@/lib/bac";
 import { getDrinkingDayStart } from "@/lib/drinking-day";
 import { getEffectiveDrinkTime } from "@/lib/drink-entry";
 import { requireCurrentUserProfile } from "@/lib/profile";
+import { getRequestTimeZone } from "@/lib/timezone";
 import type { CSSProperties } from "react";
 import { AddDrinkLink } from "@/components/add-drink-link";
 import { HomeScreenTransition } from "@/components/home-screen-transition";
@@ -31,7 +32,8 @@ function formatLastDrink(date: Date | null) {
 
 export default async function HomePage() {
   const profile = await requireCurrentUserProfile();
-  const tonightStart = getDrinkingDayStart();
+  const timeZone = await getRequestTimeZone();
+  const tonightStart = getDrinkingDayStart(new Date(), timeZone);
   const [summary, entries] = await Promise.all([
     getDrinkSummaryForClerkUser(profile.clerkUserId, tonightStart),
     getDrinkEntriesForClerkUser(profile.clerkUserId),
@@ -40,6 +42,7 @@ export default async function HomePage() {
   const bacValue = calculateCurrentBac(tonightEntries, {
     sex: profile.sex,
     weightInPounds: profile.weightInPounds,
+    metabolicEfficiency: profile.metabolicEfficiency,
   });
   const progress = getBacProgressPercent(bacValue);
 

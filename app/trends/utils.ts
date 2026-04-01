@@ -1,5 +1,11 @@
 import { getDrinkingDayStart } from "@/lib/drinking-day";
 import { getEffectiveDrinkTime } from "@/lib/drink-entry";
+import {
+  formatInTimeZone,
+  getLocalDayKey,
+  getStartOfLocalDayDaysAgo,
+  parseLocalDayKey,
+} from "@/lib/timezone";
 
 export const drinkTypeIcons: Record<string, string> = {
   beer: "/icons/beer.svg",
@@ -9,8 +15,8 @@ export const drinkTypeIcons: Record<string, string> = {
   custom_mix: "/icons/cocktail.svg",
 };
 
-export function getStartOfToday() {
-  return getDrinkingDayStart();
+export function getStartOfToday(timeZone: string) {
+  return getDrinkingDayStart(new Date(), timeZone);
 }
 
 export function formatDrinkType(drinkType: string, customDrinkName?: string | null) {
@@ -25,70 +31,53 @@ export function formatDrinkType(drinkType: string, customDrinkName?: string | nu
   return drinkType.charAt(0).toUpperCase() + drinkType.slice(1);
 }
 
-export function formatLoggedAt(date: Date) {
-  return new Intl.DateTimeFormat("en-US", {
+export function formatLoggedAt(date: Date, timeZone: string) {
+  return formatInTimeZone(date, timeZone, {
     hour: "numeric",
     minute: "2-digit",
-  }).format(date);
+  });
 }
 
-export function getDayKey(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
+export function getDayKey(date: Date, timeZone: string) {
+  return getLocalDayKey(date, timeZone);
 }
 
-export function parseDayKey(dayKey: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dayKey)) {
-    return null;
-  }
-
-  const date = new Date(`${dayKey}T00:00:00`);
-
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  return date;
+export function parseDayKey(dayKey: string, timeZone: string) {
+  return parseLocalDayKey(dayKey, timeZone);
 }
 
-export function formatDayLabel(date: Date) {
-  return new Intl.DateTimeFormat("en-US", {
+export function formatDayLabel(date: Date, timeZone: string) {
+  return formatInTimeZone(date, timeZone, {
     weekday: "short",
     month: "short",
     day: "numeric",
-  }).format(date);
+  });
 }
 
-export function formatDayHeading(date: Date) {
-  return new Intl.DateTimeFormat("en-US", {
+export function formatDayHeading(date: Date, timeZone: string) {
+  return formatInTimeZone(date, timeZone, {
     weekday: "long",
     month: "long",
     day: "numeric",
-  }).format(date);
+  });
 }
 
-export function getMonthKey(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
+export function getMonthKey(date: Date, timeZone: string) {
+  const dayKey = getLocalDayKey(date, timeZone);
+  const [year, month] = dayKey.split("-");
 
   return `${year}-${month}`;
 }
 
-export function formatMonthLabel(date: Date) {
-  return new Intl.DateTimeFormat("en-US", {
+export function formatMonthLabel(date: Date, timeZone: string) {
+  return formatInTimeZone(date, timeZone, {
     month: "long",
     year: "numeric",
-  }).format(date);
+  });
 }
 
-export function getDaysAgoDate(days: number) {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  date.setHours(0, 0, 0, 0);
-  return date;
+export function getDaysAgoDate(days: number, timeZone: string) {
+  return getStartOfLocalDayDaysAgo(days, timeZone);
 }
 
 export function buildDailyDigest<
@@ -98,7 +87,7 @@ export function buildDailyDigest<
     servingSizeOz: number | string;
     abvPercent: number | string;
   },
->(entries: T[]) {
+>(entries: T[], timeZone: string) {
   return Object.values(
     entries.reduce<
       Record<
@@ -113,8 +102,8 @@ export function buildDailyDigest<
       >
     >((acc, entry) => {
       const effectiveTime = getEffectiveDrinkTime(entry);
-      const key = getDayKey(effectiveTime);
-      const calendarDayDate = parseDayKey(key);
+      const key = getDayKey(effectiveTime, timeZone);
+      const calendarDayDate = parseDayKey(key, timeZone);
 
       if (!acc[key]) {
         acc[key] = {

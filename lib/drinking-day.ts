@@ -1,28 +1,56 @@
+import { getLocalDayKey, getTimeZoneParts, zonedTimeToUtc } from "@/lib/timezone";
+
 const DRINKING_DAY_RESET_HOUR = 8;
 
-export function getDrinkingDayStart(date = new Date()) {
-  const start = new Date(date);
-  start.setMinutes(0, 0, 0);
+export function getDrinkingDayStart(
+  date = new Date(),
+  timeZone = "America/Chicago",
+) {
+  const parts = getTimeZoneParts(date, timeZone);
+  const localDate = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
 
-  if (start.getHours() < DRINKING_DAY_RESET_HOUR) {
-    start.setDate(start.getDate() - 1);
+  if (parts.hour < DRINKING_DAY_RESET_HOUR) {
+    localDate.setUTCDate(localDate.getUTCDate() - 1);
   }
 
-  start.setHours(DRINKING_DAY_RESET_HOUR, 0, 0, 0);
-  return start;
+  return zonedTimeToUtc(
+    {
+      year: localDate.getUTCFullYear(),
+      month: localDate.getUTCMonth() + 1,
+      day: localDate.getUTCDate(),
+      hour: DRINKING_DAY_RESET_HOUR,
+      minute: 0,
+      second: 0,
+    },
+    timeZone,
+  );
 }
 
-export function getDrinkingDayKey(date: Date) {
-  const drinkingDayStart = getDrinkingDayStart(date);
-  const year = drinkingDayStart.getFullYear();
-  const month = String(drinkingDayStart.getMonth() + 1).padStart(2, "0");
-  const day = String(drinkingDayStart.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
+export function getDrinkingDayKey(date: Date, timeZone = "America/Chicago") {
+  return getLocalDayKey(getDrinkingDayStart(date, timeZone), timeZone);
 }
 
-export function getDrinkingDayWindowStartDaysAgo(days: number, now = new Date()) {
-  const start = getDrinkingDayStart(now);
-  start.setDate(start.getDate() - days);
-  return start;
+export function getDrinkingDayWindowStartDaysAgo(
+  days: number,
+  now = new Date(),
+  timeZone = "America/Chicago",
+) {
+  const start = getDrinkingDayStart(now, timeZone);
+  const localStartParts = getTimeZoneParts(start, timeZone);
+  const localDate = new Date(
+    Date.UTC(localStartParts.year, localStartParts.month - 1, localStartParts.day),
+  );
+  localDate.setUTCDate(localDate.getUTCDate() - days);
+
+  return zonedTimeToUtc(
+    {
+      year: localDate.getUTCFullYear(),
+      month: localDate.getUTCMonth() + 1,
+      day: localDate.getUTCDate(),
+      hour: DRINKING_DAY_RESET_HOUR,
+      minute: 0,
+      second: 0,
+    },
+    timeZone,
+  );
 }

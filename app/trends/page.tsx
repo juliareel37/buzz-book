@@ -3,6 +3,7 @@ import { getDrinkEntriesForClerkUser } from "@/db/queries";
 import { getDrinkBacIncrease } from "@/lib/bac";
 import { getEffectiveDrinkTime } from "@/lib/drink-entry";
 import { requireCurrentUserProfile } from "@/lib/profile";
+import { getRequestTimeZone } from "@/lib/timezone";
 import { deleteDrinkEntryAction } from "./actions";
 import { TonightList } from "./tonight-list";
 import {
@@ -15,10 +16,11 @@ import {
   getStartOfToday,
 } from "./utils";
 
-function formatDateRange(startDate: Date, endDate: Date) {
+function formatDateRange(startDate: Date, endDate: Date, timeZone: string) {
   const formatter = new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
+    timeZone,
   });
 
   return `${formatter.format(startDate)} - ${formatter.format(endDate)}`;
@@ -26,9 +28,10 @@ function formatDateRange(startDate: Date, endDate: Date) {
 
 export default async function TrendsPage() {
   const profile = await requireCurrentUserProfile();
+  const timeZone = await getRequestTimeZone();
   const entries = await getDrinkEntriesForClerkUser(profile.clerkUserId);
-  const tonightStart = getStartOfToday();
-  const pastTwoWeeks = getDaysAgoDate(14);
+  const tonightStart = getStartOfToday(timeZone);
+  const pastTwoWeeks = getDaysAgoDate(14, timeZone);
 
   const tonightEntries = entries.filter((entry) => getEffectiveDrinkTime(entry) >= tonightStart);
   const entriesPastTwoWeeks = entries.filter(
@@ -53,7 +56,7 @@ export default async function TrendsPage() {
   );
   const hasPastTwoWeeksData = entriesPastTwoWeeks.length > 0;
 
-  const pastTwoWeeksByDay = buildDailyDigest(entriesPastTwoWeeks);
+  const pastTwoWeeksByDay = buildDailyDigest(entriesPastTwoWeeks, timeZone);
 
   return (
     <section className="activity-screen">
@@ -121,7 +124,7 @@ export default async function TrendsPage() {
                 id: entry.id,
                 iconUrl: drinkTypeIcons[entry.drinkType],
                 drinkName: formatDrinkType(entry.drinkType, entry.customDrinkName),
-                detailLine: `${formatLoggedAt(getEffectiveDrinkTime(entry))} | ${Number(entry.servingSizeOz).toFixed(1)} oz`,
+                detailLine: `${formatLoggedAt(getEffectiveDrinkTime(entry), timeZone)} | ${Number(entry.servingSizeOz).toFixed(1)} oz`,
                 abvLine: `${Number(entry.abvPercent).toFixed(1)}%\u00A0ABV`,
                 bacAdd: `+ ${getDrinkBacIncrease(entry.servingSizeOz, entry.abvPercent, {
                   sex: profile.sex,
@@ -141,7 +144,7 @@ export default async function TrendsPage() {
           <div className="activity-section-heading">
             <p className="activity-section-title">Past 2 Weeks</p>
             <p className="activity-section-range">
-              {formatDateRange(pastTwoWeeks, new Date())}
+              {formatDateRange(pastTwoWeeks, new Date(), timeZone)}
             </p>
           </div>
           <Link href="/trends/history" className="activity-section-link">
@@ -155,11 +158,11 @@ export default async function TrendsPage() {
               {pastTwoWeeksByDay.map((day) => (
                 <Link
                   key={day.dayKey}
-                  href={`/trends/${day.dayKey}`}
-                  className="activity-digest-row"
+                    href={`/trends/${day.dayKey}`}
+                    className="activity-digest-row"
                 >
                   <div className="activity-digest-copy">
-                    <p className="activity-digest-title">{formatDayLabel(day.date)}</p>
+                    <p className="activity-digest-title">{formatDayLabel(day.date, timeZone)}</p>
                     <p className="activity-digest-meta">
                       {day.totalOz.toFixed(1)} oz total · {day.averageAbv.toFixed(1)}% avg ABV
                     </p>

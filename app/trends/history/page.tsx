@@ -1,6 +1,7 @@
 import { HistoryBackButton } from "@/components/history-back-button";
 import { getDrinkEntriesForClerkUser } from "@/db/queries";
 import { requireCurrentUserProfile } from "@/lib/profile";
+import { getRequestTimeZone } from "@/lib/timezone";
 import {
   buildDailyDigest,
   formatDayLabel,
@@ -11,8 +12,9 @@ import { HistoryMonthGroups } from "./history-month-groups";
 
 export default async function TrendsHistoryPage() {
   const profile = await requireCurrentUserProfile();
+  const timeZone = await getRequestTimeZone();
   const entries = await getDrinkEntriesForClerkUser(profile.clerkUserId);
-  const historyByDay = buildDailyDigest(entries);
+  const historyByDay = buildDailyDigest(entries, timeZone);
   const historyByMonth = Object.values(
     historyByDay.reduce<
       Record<
@@ -24,7 +26,7 @@ export default async function TrendsHistoryPage() {
         }
       >
     >((acc, day) => {
-      const monthKey = getMonthKey(day.date);
+      const monthKey = getMonthKey(day.date, timeZone);
 
       if (!acc[monthKey]) {
         acc[monthKey] = {
@@ -42,13 +44,13 @@ export default async function TrendsHistoryPage() {
   ).sort((a, b) => b.monthDate.getTime() - a.monthDate.getTime());
 
   const historyMonthData = historyByMonth.map((month) => ({
-    monthKey: getMonthKey(month.monthDate),
-    monthLabel: formatMonthLabel(month.monthDate),
+    monthKey: getMonthKey(month.monthDate, timeZone),
+    monthLabel: formatMonthLabel(month.monthDate, timeZone),
     dayCount: month.days.length,
     drinkCount: month.count,
     days: month.days.map((day) => ({
       dayKey: day.dayKey,
-      dayLabel: formatDayLabel(day.date),
+      dayLabel: formatDayLabel(day.date, timeZone),
       totalOz: day.totalOz.toFixed(1),
       averageAbv: day.averageAbv.toFixed(1),
       count: day.count,

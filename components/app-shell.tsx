@@ -8,6 +8,7 @@ import {
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { BottomTabs } from "@/components/bottom-tabs";
+import { TimezoneSync } from "@/components/timezone-sync";
 
 type AppShellProps = {
   children: ReactNode;
@@ -22,6 +23,7 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <main className="app-shell">
+      <TimezoneSync />
       <header className="top-bar">
         <span className="brand-wrap">
           <span className="brand-icon" aria-hidden="true" />
